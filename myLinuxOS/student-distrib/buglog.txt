@@ -1,0 +1,134 @@
+Buglog MP3
+---------------------------------------------------
+Devel would not launch
+        Solution: end up just switching test machines worked
+Unable to compile due to having test machine open while making
+        Solution: follow appendix G
+Sudo make error 127 debug.sh could not execute
+        Solution: run dos2unix ./debug.sh before making
+Random characters when pressing two keys at once
+        Solution: ASM linkage
+When two keys pressed General Protection message
+        Solution: ASM linkage
+Never reached point to print key, keyboard interrupt not being raised 
+        Solution: had to enable interrupts in kernel.c with sti()
+Would not output more that one key
+        Solution: due to while loop using keyboard status port
+First key did not output key
+        Solution: Got rid of while loop
+test_interrupts not working, don't think RTC interrupt is ever being raised
+        Solution: connect slave PIC to master PIC at irq line 2 in i8259_ini
+Boot loop
+        Solution: wrong constant B8000 paging.h, needed to align in paging.c
+PG disabled 
+        Solution: didn't have enable paging asm
+Page directory giving wrong address when printed
+        Solution: wrong constant B8000 paging.h, needed to align in paging.c
+
+upper bound for kernel and video are getting page fault
+        Solution: using int for the pointer which uses 4 bytes so the location bound went over the upper bound
+        had to replace with char.
+
+
+Checkpoint 2:
+
+
+After terminal_write, cursor is jumping to random place on screen
+        Solution: Clear keyboardbuffer after each terminal_read
+
+One space at start of line on subsequent terminal_writes
+        Solution: incorrect indexing for clearing keyboard buffer
+                  reset buffer_index to -1 after reading
+
+Backspace moving up to previous line on new terminal_read
+        Solution: restrict backspace from getting into buffer at start of buffer
+
+Random unknown character preceding files when printing directory
+        Solution: got rid of line in putc deleting NULLs
+
+RTC interrupt frequency test failing
+        Solution: missed frequency in switch statement, added 256HZ
+
+rtc_read() not working
+        Solution: set interrupt flag in handler, set interrupt flag back to 0 outside of while loop
+
+File system printing garbage values to screen
+        Solution: initialized in kernel.c without passing in address argument, so added the address argument
+
+Ran into a lot of pointer issues with the structs
+        Solution: understanding when to use -> versus . versus *
+
+Dentrys do not have the correct contents
+        Solution: Filled dentrys as we added them to the stack, instead of adding unfilled dentrys
+
+
+Checkpoint 3:
+
+
+Page-Fault Exception while trying to execute shell
+    Solution: system call handler was treating calls as zero-indexed instead of one-indexed
+              fixed the indexing and changed call to jump table to account for the 0
+              also set idt[0x80] to systemcall_asm handler
+
+Once shell launches, keyboard input is not appearing on screen
+    Solution: interrupts were not enabled during the syscalls
+              sti() in syscall_read so interrupts are enabled during individual device calls
+
+While trying to run testprint in the shell, returns "no command found"
+    Solution: exe_name buffer being passed into read_dentry_by_name had extra garbage characters
+              fill exe_name with nullchars before copying filename into it
+
+Testprint prints correct message, but instantly page faults
+    Solution: The return from halt wasn't returning to the correct location, needed to update the eax ret val
+
+
+Checkpoint 4:
+
+Boot loop crash when trying to add 6th shell (over max processes)
+        Solution: when assigning PID in execute, we were giving the global pid value an invalid number
+                 causing it to crash because it was trying to access invalid memory 
+                 fixed by making new pid_loop variable 
+
+"    cat verylongtextwithverylongname.tx" not running
+        Solution: adjust argument and exe_name parsing to remove spaces at front of command
+
+Multiple syserr tests failing
+        Solution: bounds check in filesys and syscall
+                  incorrect initializtion of ops_tables
+                  when calling open, we now set flag back down to zero if read_dentry... fails
+
+Any file_read was not working
+        Solution: use fd_array inode instead of dentry in file_read
+        
+"cat verylongtextwithverylongname.txt" is runinng but it shouldn't
+        Solution: add if statement in read_dentry_by_name to check if longer than 32
+
+
+Checkpoint 5:
+
+Page-Fault error when trying to write to save a terminal to backup video memory 
+        Solution: Needed to initialize and set the pages to present in paging.C
+
+Made our different terminals have separate text color so that it was easily distinguishable, but kept getting white text
+        Solution: Needed to ensure that current terminal was only getting the color for its specific terminal by
+                  by putting the video mem set line for all 3 terminals inside of if statements, rather than just for
+                  terminals 2 and 3.
+
+Not getting shell to execute on the terminal_swap call  
+        Solution: We executed shell if the terminal was being called for the first time, which is when it first gets switched to
+
+Could not get cursor location from lib.c 
+        Solution: Had to create extern functions to get screen_x and screen_y for save/restore terminal helper functions
+
+The cursor was not updating when we switched to a different terminal    
+        Solution: Once we called assign_screen_x and assign_screen_y we needed to called update_cursor()
+
+Memcpy for our save/restore helper functions threw errors 
+        Solution: Needed to cast our video address to a uint8_t* 
+
+
+                
+
+
+
+
